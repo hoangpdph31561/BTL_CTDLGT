@@ -1,0 +1,184 @@
+1. XÁC ĐỊNH BÀI TOÁN
+
+Mô tả bài toán:
+Xây dựng một chương trình console bằng C++ để quản lý hoạt động đặt tour du lịch cho một công ty du lịch nhỏ. 
+Hệ thống quản lý 4 đối tượng chính: Tour, Customer (khách hàng), Staff (nhân viên), và Booking (phiếu đặt). 
+Người dùng tương tác qua menu văn bản để thực hiện các nghiệp vụ: thêm, sửa, xóa, tìm kiếm, liệt kê, thống kê, và lưu trạng thái hệ 
+thống. Chương trình cần đảm bảo tính toàn vẹn tham chiếu (không cho xóa thực thể khi có booking tham chiếu), 
+kiểm tra hợp lệ ngày (định dạng DDMMYYYY), 
+hỗ trợ sinh dữ liệu mẫu một lần, và có khả năng xuất toàn bộ dữ liệu ra file text để lưu trữ.
+
+Yêu cầu chi tiết:
+- Quản lý Tour: thông tin tối thiểu gồm ID, tên tour, điểm đi/đến, ngày bắt đầu, ngày kết thúc, giá, sức chứa.
+- Quản lý Customer: ID, tên, điện thoại, email, địa chỉ.
+- Quản lý Staff: ID, tên, vị trí, điện thoại, email.
+- Quản lý Booking: ID, tham chiếu Tour/Customer/Staff (FK), số lượng, tổng tiền, ngày booking (DDMMYYYY), trạng thái.
+- ID tự động tăng cho từng loại đối tượng.
+- Khi xóa Tour/Customer/Staff phải kiểm tra FK (các booking tham chiếu) và chặn xóa nếu tồn tại.
+- Sinh dữ liệu mẫu (một lần) để dễ kiểm thử.
+- Kiểm tra ngày nhập theo định dạng DDMMYYYY và so sánh chính xác bằng cách chuyển sang dạng số YYYYMMDD.
+- Booking chỉ chấp nhận khi ngày booking nằm trong khoảng startDate..endDate của tour và không ở quá khứ.
+- Tính năng lưu toàn bộ dữ liệu ra file text với xác nhận khi ghi đè.
+
+2. XÁC ĐỊNH CẤU TRÚC DỮ LIỆU
+
+Các kiểu dữ liệu và cấu trúc chính:
+- Tour (models/Tour.h):
+  - aintTourID (int), astrTourName (string), astrOrigin, astrDestination, astrStartDate (DDMMYYYY), astrEndDate (DDMMYYYY), adblPrice (double), aintCapacity (int), ...
+- Customer (models/Customer.h): aintCustomerID, astrCustomerName, astrPhone, astrEmail, astrAddress, ...
+- Staff (models/Staff.h): aintStaffID, astrStaffName, astrPosition, astrPhone, astrEmail, ...
+- Booking (models/Booking.h): aintBookingID, aintTourID, aintCustomerID, aintStaffID, aintQuantity, adblTotal, astrBookingDate (DDMMYYYY), astrStatus
+
+Lưu trữ trong chương trình:
+- controllers/storage.h: struct Storage chứa vectors cho từng loại đối tượng, counters auto-increment, và flag myBoolSampleDataGenerated.
+- Mô hình in-memory đơn giản, dễ hiểu và thuận lợi cho kiểm thử unit.
+
+Input/Output dự kiến:
+- Input: kiểu text qua menu (số chọn, chuỗi, số, ngày DDMMYYYY).
+- Output: danh sách, báo cáo trạng thái, thông báo lỗi/nhắc nhập, file lưu văn bản (storage_dump.txt hoặc đường dẫn do người dùng chỉ định).
+
+3. XÁC ĐỊNH THUẬT TOÁN VÀ LUỒNG XỬ LÝ
+
+Các chức năng chính và sơ đồ xử lý (tóm tắt):
+- Thêm đối tượng: đọc dữ liệu từ menu -> validate (format, ngày) -> tạo bản ghi local -> gán ID tự động -> push vào vector.
+- Tìm/Hiển thị: quét vector và in các trường cần thiết.
+- Xóa: trước khi xóa, gọi hàm kiểm tra FK; nếu có booking tham chiếu -> thông báo và chặn.
+- Sinh dữ liệu mẫu: tạo một số Tour/Customer/Staff mẫu, thiết lập flag để không cho sinh lần hai.
+- Tạo Booking: chọn Tour/Customer/Staff, nhập quantity, nhập booking date, kiểm tra date format và ràng buộc (booking date ∈ [start,end] và >= today), tính tổng tiền = price * quantity, gọi addBooking.
+- Lưu file: ghi tuần tự các phần # Tours, # Customers, # Staffs, # Bookings; mỗi bản ghi một dòng, trường phân tách bằng '|'.
+
+Chi tiết kiểm tra ngày:
+- Hàm parseDateToInt nhận chuỗi DDMMYYYY, kiểm tra độ dài 8 ký tự, tất cả là chữ số, chuyển sang số int dạng YYYYMMDD để so sánh.
+- Hàm todayDateInt lấy ngày hiện tại và trả về int YYYYMMDD.
+
+4. LẬP TRÌNH – CÀI ĐẶT
+
+Cấu trúc chương trình (các file chính):
+- main.cpp: entry point, tạo Storage và gọi runMenu.
+- models/: chứa Tour.h/.cpp, Customer.h/.cpp, Staff.h/.cpp, Booking.h/.cpp.
+- controllers/storage.h/.cpp: cung cấp các hàm add/find/remove/list và saveStorageToFile; quản lý counters và dữ liệu in-memory.
+- controllers/menu.h/.cpp: menu tương tác, helpers IO, hàm parseDateToInt và todayDateInt, các menu con (menuTour, menuCustomer, menuStaff, menuBooking) và runMenu.
+- tests/: tập các file test assert-based (test_tour.cpp, test_booking.cpp, test_menu_flow.cpp, test_system.cpp, test_dates.cpp).
+
+Những đoạn code chính (ghi chú file để chụp ảnh):
+- controllers/storage.cpp: hàm generateSampleDataOnce (tạo dữ liệu mẫu) và saveStorageToFile (ghi file).
+- controllers/menu.cpp: hàm parseDateToInt, todayDateInt; khối xử lý thêm Booking (menuBooking) chứa validation ngày và tính tổng.
+- models/Booking.h và models/Booking.cpp: cấu trúc Booking và constructor.
+- main.cpp: toàn file (ứng dụng khởi tạo và gọi menu).
+
+5. KIỂM THỬ - LẬP BỘ TEST
+
+Bộ test hiện có và mục tiêu kiểm thử:
+- test_tour.cpp: kiểm tra thêm tour, tìm theo ID, xóa tour, và auto-increment ID.
+- test_booking.cpp: kiểm tra thêm booking, truy vấn booking, ràng buộc FK khi xóa tour, trường hợp storage chấp nhận booking với IDs không tồn tại (như một đặc tả: storage không enforce FK khi thêm).
+- test_menu_flow.cpp: kiểm tra generateSampleDataOnce (chỉ chạy 1 lần), tạo booking trên dữ liệu mẫu, kiểm tra chặn xóa tour khi có booking, xoá booking rồi xoá tour.
+- test_system.cpp: kịch bản tổng thể tạo tour/customer/staff và booking, sau đó thử xóa customer bị khóa bởi booking và dọn dẹp.
+- test_dates.cpp: kiểm tra parseDateToInt với dữ liệu hợp lệ/không hợp lệ, và todayDateInt.
+
+Hướng dẫn chạy test (PowerShell):
+- Biên dịch một test ví dụ:
+  & 'C:/msys64/ucrt64/bin/g++.exe' -std=c++17 -I. 'd:/BTL_CTDLGT/tests/test_tour.cpp' 'd:/BTL_CTDLGT/controllers/storage.cpp' 'd:/BTL_CTDLGT/models/Tour.cpp' -o 'd:/BTL_CTDLGT/tests/test_tour.exe'
+- Chạy:
+  & 'd:/BTL_CTDLGT/tests/test_tour.exe'
+
+Gợi ý: để kiểm thử logic menu (không tương tác), đã tạo hàm validate / kiểm tra ngày trong controllers/menu.cpp; nếu muốn test các hàm UI tách rời, có thể trích ra module validation và viết thêm test_validation.cpp.
+
+6. TỐI ƯU HÓA CHƯƠNG TRÌNH (nếu có)
+
+Các đề xuất cải tiến:
+- Thêm loadStorageFromFile để phục hồi trạng thái từ file text.
+- Chuyển cấu trúc lưu từ vector sang unordered_map để tra cứu theo ID O(1) khi dữ liệu lớn.
+- Di chuyển logic validate (ngày, FK checks) sang module riêng controllers/validation.cpp để dễ test tự động.
+- Bổ sung kiểm tra capacity khi thêm booking.
+- Thêm logging, và xử lý lỗi IO chi tiết (quyền truy cập, disk full).
+
+Kết luận:
+Báo cáo trình bày đầy đủ yêu cầu, thiết kế, thuật toán, triển khai và kiểm thử cho bài toán quản lý đặt tour du lịch. Tập trung của đồ án là đảm bảo tính toàn vẹn dữ liệu, kiểm tra ngày và khả năng xuất dữ liệu ra file để lưu hồ sơ.
+
+Hết.
+
+7. BẢNG DỮ LIỆU ĐẦU VÀO VÀ KẾT QUẢ KỲ VỌNG (DÙNG TRONG TESTS)
+
+Ghi chú: các test sử dụng hàm `generateSampleDataOnce(Storage&)` (nếu cần) để tạo dữ liệu mẫu. Khi gọi lần đầu, đối tượng được thêm theo thứ tự dưới đây; ID tự tăng bắt đầu từ 1.
+
+A) Tours (thêm theo thứ tự, aintTourID = 1..10):
+ID | Name | Origin | Destination | Start (DDMMYYYY) | End | Price | Capacity
+1 | Ha Long Bay | Hanoi | Ha Long | 01062026 | 05062026 | 120.0 | 30
+2 | Da Nang Escape | Da Nang | Da Nang | 10072026 | 15072026 | 90.0 | 20
+3 | Sapa Adventure | Hanoi | Sapa | 20062026 | 23062026 | 150.0 | 25
+4 | Phu Quoc Relax | Ho Chi Minh | Phu Quoc | 01082026 | 05082026 | 200.0 | 40
+5 | Ninh Binh Discovery | Ninh Binh | Ninh Binh | 15062026 | 16062026 | 80.0 | 20
+6 | Hue Heritage | Hue | Hue | 05092026 | 07092026 | 95.0 | 18
+7 | Mekong Delta | Can Tho | Mekong | 12072026 | 14072026 | 110.0 | 30
+8 | Ho Chi Minh City Tour | Ho Chi Minh | HCMC | 01062026 | 01062026 | 70.0 | 50
+9 | Da Lat Retreat | Da Lat | Da Lat | 20082026 | 22082026 | 130.0 | 22
+10 | Hanoi Classic | Hanoi | Hanoi | 05062026 | 06062026 | 85.0 | 35
+
+B) Customers (aintCustomerID = 1..10):
+ID | Name | Phone | Email
+1 | Nguyen Van A | 0123456789 | a@example.com
+2 | Tran Thi B | 0987654321 | b@example.com
+3 | Le Van C | 0911222333 | c@example.com
+4 | Pham Thi D | 0944556677 | d@example.com
+5 | Hoang Van E | 0977888999 | e@example.com
+6 | Ngo Thi F | 0900111222 | f@example.com
+7 | Vu Van G | 0933444555 | g@example.com
+8 | Do Thi H | 0955667788 | h@example.com
+9 | Bui Van I | 0922333444 | i@example.com
+10 | Duong Thi J | 0966778899 | j@example.com
+
+C) Staff (aintStaffID = 1..10):
+ID | Name | Position | Phone | Email
+1 | Le Thi B | Sales | 0111000111 | staff1@agency.com
+2 | Tran Van K | Guide | 0111000222 | staff2@agency.com
+3 | Nguyen Thi L | Sales | 0111000333 | staff3@agency.com
+4 | Pham Van M | Manager | 0111000444 | staff4@agency.com
+5 | Hoang Thi N | Guide | 0111000555 | staff5@agency.com
+6 | Vu Van O | Sales | 0111000666 | staff6@agency.com
+7 | Do Thi P | Guide | 0111000777 | staff7@agency.com
+8 | Bui Van Q | Sales | 0111000888 | staff8@agency.com
+9 | Duong Thi R | Support | 0111000999 | staff9@agency.com
+10 | Ngo Van S | Guide | 0111001111 | staff10@agency.com
+
+D) Bookings (thêm theo thứ tự khi sinh mẫu; aintBookingID = 1..N)
+BookingID | TourID | CustomerID | StaffID | Qty | Total | Date (DDMMYYYY) | Status
+1 | 1 | 1 | 1 | 2 | 240.0 | 01062026 | confirmed
+2 | 1 | 2 | 2 | 4 | 480.0 | 01062026 | pending
+3 | 2 | 3 | 1 | 1 | 90.0 | 10072026 | confirmed
+4 | 3 | 1 | 3 | 3 | 450.0 | 20062026 | canceled
+5 | 4 | 4 | 4 | 1..4 (var) | price * qty | startDate of tour 4 | confirmed/pending/canceled (pattern)
+6 | 5 | 5 | 5 | ...
+... additional bookings created per sample loop (IDs 5..9)
+
+Ghi chú: bản ghi Bookings từ 5..9 được tạo bằng vòng lặp trên chỉ số ai=3..7; bảng trên tóm tắt loại mẫu, chi tiết đầy đủ nằm trong controllers/storage.cpp (generateSampleDataOnce).
+
+E) Bảng Input→Output cho các test điển hình (mapping test case → input → expected output)
+- test_dates (Tập test):
+  - Input: parseDateToInt("01062026") → Output: 20260601 (int); parseDateToInt("31132026") → Output: 0 (invalid)
+  - Input: todayDateInt() → Output: hiện tại dưới dạng YYYYMMDD (thử so với hệ thống)
+
+- test_tour:
+  - Case: Thêm Tour hợp lệ
+    - Input: {name:"Test Tour", origin:"X", dest:"Y", start:"10062026", end:"12062026", price:50.0, capacity:10}
+    - Expected: addTour returns aintTourID > 0; findTourByID returns tour with matching fields
+  - Case: Xóa Tour có booking (use sample data)
+    - Input: removeTour(theStorage, 1)
+    - Expected: false (because booking IDs 1.. refer to tour 1)
+
+- test_booking:
+  - Case: Thêm Booking hợp lệ
+    - Input: aintTourID=2, aintCustomerID=3, aintStaffID=1, aintQuantity=2, astrBookingDate="10072026"
+    - Expected: addBooking returns new Booking ID; booking.adblTotal == tour.price * 2
+  - Case: Thêm Booking ngày ngoài khoảng
+    - Input: booking date = "01012026" for tour 2
+    - Expected: Rejected at UI level (menu) — parseDateToInt returns valid but check bDate ∉ [start,end] leads to error message
+
+- test_menu_flow / test_system (kịch bản)
+  - Steps (input sequence): generateSampleDataOnce -> listTours -> create booking -> verify total revenue
+  - Expected end state: bookings count >= 1; totalRevenue(theStorage) equals sum(adblTotal) for created bookings; attempts to delete referenced Tour/Customer/Staff fail until bookings removed.
+
+F) Hướng dẫn sử dụng bảng này để tạo test files
+- Sử dụng các giá trị cụ thể của A/B/C để khởi tạo storage trong test (ví dụ: gọi generateSampleDataOnce hoặc thêm theo thứ tự trong test). Sau đó gọi hàm kiểm tra và so sánh kết quả.
+- Đầu ra mong đợi cho mỗi test nên so sánh giá trị (IDs, counts, tổng doanh thu, trạng thái bản ghi) chính xác.
+
+---

@@ -1,0 +1,82 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "C/C++: g++.exe build active file",
+            "command": "C:/msys64/ucrt64/bin/g++.exe",
+            "args": [
+                "-std=c++17",
+                "-g",
+                "${workspaceFolder}/main.cpp",
+                "${workspaceFolder}/models/Tour.cpp",
+                "${workspaceFolder}/models/Customer.cpp",
+                "${workspaceFolder}/models/Staff.cpp",
+                "${workspaceFolder}/models/Booking.cpp",
+                "${workspaceFolder}/controllers/storage.cpp",
+                "${workspaceFolder}/controllers/menu.cpp",
+                "-I${workspaceFolder}",
+                "-o",
+                "${workspaceFolder}/main.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Project-wide build task replacing the original active-file build so debug preLaunchTask builds all sources."
+        },
+        {
+            "label": "build: full project",
+            "type": "shell",
+            "command": "C:/msys64/ucrt64/bin/g++.exe",
+            "args": [
+                "-std=c++17",
+                "-g",
+                "d:/BTL_CTDLGT/main.cpp",
+                "d:/BTL_CTDLGT/models/Tour.cpp",
+                "d:/BTL_CTDLGT/models/Customer.cpp",
+                "d:/BTL_CTDLGT/models/Staff.cpp",
+                "d:/BTL_CTDLGT/models/Booking.cpp",
+                "d:/BTL_CTDLGT/controllers/storage.cpp",
+                "d:/BTL_CTDLGT/controllers/menu.cpp",
+                "-Id:/BTL_CTDLGT",
+                "-o",
+                "d:/BTL_CTDLGT/main.exe"
+            ],
+            "options": {
+                "cwd": "C:/msys64/ucrt64/bin"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "run: main",
+            "type": "shell",
+            "command": "d:/BTL_CTDLGT/main.exe",
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "build+run",
+            "type": "shell",
+            "dependsOrder": "sequence",
+            "dependsOn": ["build: full project","run: main"]
+        },
+        {
+            "label": "run tests",
+            "type": "shell",
+            "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -g d:/BTL_CTDLGT/models/Tour.cpp d:/BTL_CTDLGT/models/Customer.cpp d:/BTL_CTDLGT/models/Staff.cpp d:/BTL_CTDLGT/models/Booking.cpp d:/BTL_CTDLGT/controllers/storage.cpp d:/BTL_CTDLGT/tests/test_tour.cpp -o d:/BTL_CTDLGT/tests/test_tour.exe && d:/BTL_CTDLGT/tests/test_tour.exe",
+            "problemMatcher": ["$gcc"],
+            "group": "test"
+        }
+    ],
+    "version": "2.0.0"
+}
