@@ -223,7 +223,7 @@ void menuBooking(Storage &theStorage) {
 
 void menuReports(Storage &theStorage) {
     while (true) {
-        std::cout << "\n--- Reports / Statistics ---\n1. List Tours sorted by price (asc)\n2. List Tours sorted by start date (asc)\n3. List Customers sorted by name\n4. List Bookings sorted by date\n5. Show tour with max price and min price\n6. Show tour with max capacity\n7. Total revenue / avg per booking / total guests\n8. Revenue per tour\n9. Bookings per customer (counts)\n10. Bookings per staff (counts)\n11. Tours in month/year\n12. Bookings by status\n0. Back\nChoose: ";
+        std::cout << "\n--- Reports / Statistics ---\n1. List Tours sorted by price (asc)\n2. List Tours sorted by start date (asc)\n3. List Customers sorted by name\n4. List Bookings sorted by date\n5. Show tour with max price and min price\n6. Show tour with max capacity\n7. Total revenue / avg per booking / total guests\n8. Revenue per tour\n9. Bookings per customer (counts)\n10. Bookings per staff (counts)\n11. Tours in month/year\n12. Bookings by status\n13. Count tours with same origin as first\n0. Back\nChoose: ";
         int aintChoice = readInt("");
         switch (aintChoice) {
             case 0: return;
@@ -294,6 +294,22 @@ void menuReports(Storage &theStorage) {
             case 12: {
                 auto amap = bookingsByStatus(theStorage);
                 for (const auto &kv : amap) std::cout<<"Status='"<<kv.first<<"' Count="<<kv.second<<"\n";
+                readLine("Press Enter to continue...");
+                break;
+            }
+            case 13: {
+                if (theStorage.tours.empty()) {
+                    std::cout << "No tours available to compare.\n";
+                } else {
+                    std::string astrOrigin = theStorage.tours[0].astrOrigin;
+                    int aintResult = countToursWithSameOriginAsFirst(theStorage);
+                    
+                    std::cout << "-------------------------------------------\n";
+                    std::cout << "First tour: " << theStorage.tours[0].astrTourName << "\n";
+                    std::cout << "Origin of first tour: " << astrOrigin << "\n";
+                    std::cout << "Total tours starting from " << astrOrigin << ": " << aintResult << "\n";
+                    std::cout << "-------------------------------------------\n";
+                }
                 readLine("Press Enter to continue...");
                 break;
             }

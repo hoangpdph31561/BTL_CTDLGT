@@ -1,9 +1,7 @@
 #include "storage.h"
-#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <map>
 
 int addTour(Storage &theStorage, const Tour &theTour) {
     Tour local = theTour;
@@ -91,40 +89,28 @@ Booking* findBookingByID(Storage &theStorage, int aintBookingID) {
 
 bool removeTour(Storage &theStorage, int aintTourID) {
     if (hasBookingsForTour(theStorage, aintTourID)) return false;
-    auto it = std::remove_if(theStorage.tours.begin(), theStorage.tours.end(), [aintTourID](const Tour &t){ return t.aintTourID == aintTourID; });
-    if (it == theStorage.tours.end()) return false;
-    theStorage.tours.erase(it, theStorage.tours.end());
-    return true;
+    return theStorage.tours.erase_if([aintTourID](const Tour &t){ return t.aintTourID == aintTourID; });
 }
 
 bool removeCustomer(Storage &theStorage, int aintCustomerID) {
     if (hasBookingsForCustomer(theStorage, aintCustomerID)) return false;
-    auto it = std::remove_if(theStorage.customers.begin(), theStorage.customers.end(), [aintCustomerID](const Customer &c){ return c.aintCustomerID == aintCustomerID; });
-    if (it == theStorage.customers.end()) return false;
-    theStorage.customers.erase(it, theStorage.customers.end());
-    return true;
+    return theStorage.customers.erase_if([aintCustomerID](const Customer &c){ return c.aintCustomerID == aintCustomerID; });
 }
 
 bool removeStaff(Storage &theStorage, int aintStaffID) {
     if (hasBookingsForStaff(theStorage, aintStaffID)) return false;
-    auto it = std::remove_if(theStorage.staffs.begin(), theStorage.staffs.end(), [aintStaffID](const Staff &s){ return s.aintStaffID == aintStaffID; });
-    if (it == theStorage.staffs.end()) return false;
-    theStorage.staffs.erase(it, theStorage.staffs.end());
-    return true;
+    return theStorage.staffs.erase_if([aintStaffID](const Staff &s){ return s.aintStaffID == aintStaffID; });
 }
 
 bool removeBooking(Storage &theStorage, int aintBookingID) {
-    auto it = std::remove_if(theStorage.bookings.begin(), theStorage.bookings.end(), [aintBookingID](const Booking &b){ return b.aintBookingID == aintBookingID; });
-    if (it == theStorage.bookings.end()) return false;
-    theStorage.bookings.erase(it, theStorage.bookings.end());
-    return true;
+    return theStorage.bookings.erase_if([aintBookingID](const Booking &b){ return b.aintBookingID == aintBookingID; });
 }
 
 bool generateSampleDataOnce(Storage &theStorage) {
     if (theStorage.myBoolSampleDataGenerated) return false;
 
     // Add ~10 tours
-    std::vector<Tour> avTours = {
+    DoubleLinkedList<Tour> avTours = {
         Tour("Ha Long Bay", 120.0, 30),
         Tour("Da Nang Escape", 90.0, 20),
         Tour("Sapa Adventure", 150.0, 25),
@@ -152,7 +138,7 @@ bool generateSampleDataOnce(Storage &theStorage) {
     for (const auto &theT : avTours) addTour(theStorage, theT);
 
     // Add ~10 customers
-    std::vector<Customer> avCustomers = {
+    DoubleLinkedList<Customer> avCustomers = {
         Customer("Nguyen Van A"), Customer("Tran Thi B"), Customer("Le Van C"), Customer("Pham Thi D"), Customer("Hoang Van E"),
         Customer("Ngo Thi F"), Customer("Vu Van G"), Customer("Do Thi H"), Customer("Bui Van I"), Customer("Duong Thi J")
     };
@@ -171,7 +157,7 @@ bool generateSampleDataOnce(Storage &theStorage) {
     for (const auto &theC : avCustomers) addCustomer(theStorage, theC);
 
     // Add ~10 staff
-    std::vector<Staff> avStaff = {
+    DoubleLinkedList<Staff> avStaff = {
         Staff("Le Thi B"), Staff("Tran Van K"), Staff("Nguyen Thi L"), Staff("Pham Van M"), Staff("Hoang Thi N"),
         Staff("Vu Van O"), Staff("Do Thi P"), Staff("Bui Van Q"), Staff("Duong Thi R"), Staff("Ngo Van S")
     };
@@ -189,10 +175,7 @@ bool generateSampleDataOnce(Storage &theStorage) {
     for (const auto &theS : avStaff) addStaff(theStorage, theS);
 
     // Add several bookings referencing created tours/customers/staff
-    // Use available IDs (auto-incremented by addTour/addCustomer/addStaff)
-    // Create a few bookings across tours
     if (!theStorage.tours.empty() && !theStorage.customers.empty() && !theStorage.staffs.empty()) {
-        // choose some ids
         int aintTour1 = theStorage.tours[0].aintTourID;
         int aintTour2 = theStorage.tours[1].aintTourID;
         int aintTour3 = theStorage.tours[2].aintTourID;
@@ -215,8 +198,6 @@ bool generateSampleDataOnce(Storage &theStorage) {
         Booking b4(aintTour3, aintCust1, aintStaff3, 3, theStorage.tours[2].adblPrice * 3);
         b4.astrBookingDate = theStorage.tours[2].astrStartDate; b4.astrStatus = "canceled"; addBooking(theStorage, b4);
 
-        // more varied bookings
-        // create additional bookings using indices safely
         for (size_t ai = 3; ai < theStorage.tours.size() && ai < theStorage.customers.size() && ai < theStorage.staffs.size() && ai < 8; ++ai) {
             int aintTid = theStorage.tours[ai].aintTourID;
             int aintCid = theStorage.customers[ai].aintCustomerID;
@@ -234,7 +215,6 @@ bool generateSampleDataOnce(Storage &theStorage) {
     return true;
 }
 
-// save storage to text file
 bool saveStorageToFile(const Storage &theStorage, const std::string &theFilePath) {
     std::ofstream ofs(theFilePath);
     if (!ofs.is_open()) return false;
@@ -273,60 +253,84 @@ bool loadStorageFromFile(Storage &theStorage, const std::string &theFilePath) {
     return true;
 }
 
-std::vector<Tour> getToursSortedByPrice(const Storage &theStorage, bool theBoolDesc) {
-    std::vector<Tour> avOut = theStorage.tours;
-    std::sort(avOut.begin(), avOut.end(), [theBoolDesc](const Tour &a, const Tour &b){
+DoubleLinkedList<Tour> getToursSortedByPrice(const Storage &theStorage, bool theBoolDesc) {
+    DoubleLinkedList<Tour> avOut = theStorage.tours;
+    avOut.sort([theBoolDesc](const Tour &a, const Tour &b){
         if (theBoolDesc) return a.adblPrice > b.adblPrice; else return a.adblPrice < b.adblPrice;
     });
     return avOut;
 }
 
-std::vector<Tour> getToursSortedByStartDate(const Storage &theStorage, bool theBoolDesc) {
+DoubleLinkedList<Tour> getToursSortedByStartDate(const Storage &theStorage, bool theBoolDesc) {
     auto parse = [](const std::string &astrS){
         if (astrS.size() != 8) return 0;
         try { int aintD = std::stoi(astrS.substr(0,2)); int aintM = std::stoi(astrS.substr(2,2)); int aintY = std::stoi(astrS.substr(4,4)); return aintY*10000 + aintM*100 + aintD; } catch(...) { return 0; }
     };
-    std::vector<Tour> avOut = theStorage.tours;
-    std::sort(avOut.begin(), avOut.end(), [theBoolDesc,&parse](const Tour &theA, const Tour &theB){
+    DoubleLinkedList<Tour> avOut = theStorage.tours;
+    avOut.sort([theBoolDesc,&parse](const Tour &theA, const Tour &theB){
         int aintA = parse(theA.astrStartDate); int aintB = parse(theB.astrStartDate);
         if (theBoolDesc) return aintA > aintB; else return aintA < aintB;
     });
     return avOut;
 }
 
-std::vector<Customer> getCustomersSortedByName(const Storage &theStorage, bool theBoolDesc) {
-    std::vector<Customer> avOut = theStorage.customers;
-    std::sort(avOut.begin(), avOut.end(), [theBoolDesc](const Customer &theA, const Customer &theB){
+DoubleLinkedList<Customer> getCustomersSortedByName(const Storage &theStorage, bool theBoolDesc) {
+    DoubleLinkedList<Customer> avOut = theStorage.customers;
+    avOut.sort([theBoolDesc](const Customer &theA, const Customer &theB){
         if (theBoolDesc) return theA.astrCustomerName > theB.astrCustomerName; else return theA.astrCustomerName < theB.astrCustomerName;
     });
     return avOut;
 }
 
-std::vector<Booking> getBookingsSortedByDate(const Storage &theStorage, bool theBoolDesc) {
+DoubleLinkedList<Booking> getBookingsSortedByDate(const Storage &theStorage, bool theBoolDesc) {
     auto parse = [](const std::string &astrS){ if (astrS.size()!=8) return 0; try{ int aintD=std::stoi(astrS.substr(0,2)); int aintM=std::stoi(astrS.substr(2,2)); int aintY=std::stoi(astrS.substr(4,4)); return aintY*10000+aintM*100+aintD;}catch(...){return 0;} };
-    std::vector<Booking> avOut = theStorage.bookings;
-    std::sort(avOut.begin(), avOut.end(), [theBoolDesc,&parse](const Booking &theA, const Booking &theB){ int aintA=parse(theA.astrBookingDate); int aintB=parse(theB.astrBookingDate); if (theBoolDesc) return aintA>aintB; else return aintA<aintB; });
+    DoubleLinkedList<Booking> avOut = theStorage.bookings;
+    avOut.sort([theBoolDesc,&parse](const Booking &theA, const Booking &theB){ int aintA=parse(theA.astrBookingDate); int aintB=parse(theB.astrBookingDate); if (theBoolDesc) return aintA>aintB; else return aintA<aintB; });
     return avOut;
 }
 
 const Tour* getTourWithMaxPrice(const Storage &theStorage) {
     if (theStorage.tours.empty()) return nullptr;
-    return &(*std::max_element(theStorage.tours.begin(), theStorage.tours.end(), [](const Tour &theA,const Tour &theB){ return theA.adblPrice < theB.adblPrice; }));
+    const Tour* maxTour = nullptr;
+    for (const auto &t : theStorage.tours) {
+        if (!maxTour || t.adblPrice > maxTour->adblPrice) {
+            maxTour = &t;
+        }
+    }
+    return maxTour;
 }
 
 const Tour* getTourWithMinPrice(const Storage &theStorage) {
     if (theStorage.tours.empty()) return nullptr;
-    return &(*std::min_element(theStorage.tours.begin(), theStorage.tours.end(), [](const Tour &theA,const Tour &theB){ return theA.adblPrice < theB.adblPrice; }));
+    const Tour* minTour = nullptr;
+    for (const auto &t : theStorage.tours) {
+        if (!minTour || t.adblPrice < minTour->adblPrice) {
+            minTour = &t;
+        }
+    }
+    return minTour;
 }
 
 const Tour* getTourWithMaxCapacity(const Storage &theStorage) {
     if (theStorage.tours.empty()) return nullptr;
-    return &(*std::max_element(theStorage.tours.begin(), theStorage.tours.end(), [](const Tour &theA,const Tour &theB){ return theA.aintCapacity < theB.aintCapacity; }));
+    const Tour* maxTour = nullptr;
+    for (const auto &t : theStorage.tours) {
+        if (!maxTour || t.aintCapacity > maxTour->aintCapacity) {
+            maxTour = &t;
+        }
+    }
+    return maxTour;
 }
 
 const Booking* getBookingWithMaxTotal(const Storage &theStorage) {
     if (theStorage.bookings.empty()) return nullptr;
-    return &(*std::max_element(theStorage.bookings.begin(), theStorage.bookings.end(), [](const Booking &theA,const Booking &theB){ return theA.adblTotal < theB.adblTotal; }));
+    const Booking* maxBooking = nullptr;
+    for (const auto &b : theStorage.bookings) {
+        if (!maxBooking || b.adblTotal > maxBooking->adblTotal) {
+            maxBooking = &b;
+        }
+    }
+    return maxBooking;
 }
 
 double totalRevenue(const Storage &theStorage) {
@@ -342,22 +346,22 @@ int countCustomers(const Storage &theStorage) { return (int)theStorage.customers
 
 int totalGuestsBooked(const Storage &theStorage) { int aintSum=0; for (const auto &theB : theStorage.bookings) aintSum += theB.aintQuantity; return aintSum; }
 
-std::map<int,double> revenuePerTour(const Storage &theStorage) {
-    std::map<int,double> am;
+DLLMap<int,double> revenuePerTour(const Storage &theStorage) {
+    DLLMap<int,double> am;
     for (const auto &theB : theStorage.bookings) am[theB.aintTourID] += theB.adblTotal;
     return am;
 }
 
-std::map<int,int> bookingsPerCustomer(const Storage &theStorage) {
-    std::map<int,int> am; for (const auto &theB : theStorage.bookings) am[theB.aintCustomerID]++; return am;
+DLLMap<int,int> bookingsPerCustomer(const Storage &theStorage) {
+    DLLMap<int,int> am; for (const auto &theB : theStorage.bookings) am[theB.aintCustomerID]++; return am;
 }
 
-std::map<int,int> bookingsPerStaff(const Storage &theStorage) {
-    std::map<int,int> am; for (const auto &theB : theStorage.bookings) am[theB.aintStaffID]++; return am;
+DLLMap<int,int> bookingsPerStaff(const Storage &theStorage) {
+    DLLMap<int,int> am; for (const auto &theB : theStorage.bookings) am[theB.aintStaffID]++; return am;
 }
 
-std::vector<Tour> toursInMonthYear(const Storage &theStorage, int theIntMonth, int theIntYear) {
-    std::vector<Tour> avOut;
+DoubleLinkedList<Tour> toursInMonthYear(const Storage &theStorage, int theIntMonth, int theIntYear) {
+    DoubleLinkedList<Tour> avOut;
     for (const auto &theT : theStorage.tours) {
         if (theT.astrStartDate.size()!=8) continue;
         try { int aintM = std::stoi(theT.astrStartDate.substr(2,2)); int aintY = std::stoi(theT.astrStartDate.substr(4,4)); if (aintM==theIntMonth && aintY==theIntYear) avOut.push_back(theT); } catch(...) { continue; }
@@ -365,8 +369,22 @@ std::vector<Tour> toursInMonthYear(const Storage &theStorage, int theIntMonth, i
     return avOut;
 }
 
-std::map<std::string,int> bookingsByStatus(const Storage &theStorage) {
-    std::map<std::string,int> am;
+DLLMap<std::string,int> bookingsByStatus(const Storage &theStorage) {
+    DLLMap<std::string,int> am;
     for (const auto &theB : theStorage.bookings) am[theB.astrStatus]++;
     return am;
+}
+
+int countToursWithSameOriginAsFirst(const Storage &theStorage) {
+    if (theStorage.tours.empty()) {
+        return 0;
+    }
+    std::string astrFirstOrigin = theStorage.tours[0].astrOrigin;
+    int aintCount = 0;
+    for (const auto &t : theStorage.tours) {
+        if (t.astrOrigin == astrFirstOrigin) {
+            aintCount++;
+        }
+    }
+    return aintCount;
 }

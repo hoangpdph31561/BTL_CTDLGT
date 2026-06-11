@@ -1,18 +1,18 @@
 #pragma once
 
-#include <vector>
 #include <string>
-#include <map>
+#include "DoubleLinkedList.h"
+#include "DLLMap.h"
 #include "../models/Tour.h"
 #include "../models/Customer.h"
 #include "../models/Staff.h"
 #include "../models/Booking.h"
 
 struct Storage {
-    std::vector<Tour> tours;
-    std::vector<Customer> customers;
-    std::vector<Staff> staffs;
-    std::vector<Booking> bookings;
+    DoubleLinkedList<Tour> tours;
+    DoubleLinkedList<Customer> customers;
+    DoubleLinkedList<Staff> staffs;
+    DoubleLinkedList<Booking> bookings;
 
     int myIntNextTourID = 1;
     int myIntNextCustomerID = 1;
@@ -58,10 +58,10 @@ bool saveStorageToFile(const Storage &theStorage, const std::string &theFilePath
 bool loadStorageFromFile(Storage &theStorage, const std::string &theFilePath);
 
 // Sorting helpers
-std::vector<Tour> getToursSortedByPrice(const Storage &theStorage, bool theBoolDesc=false);
-std::vector<Tour> getToursSortedByStartDate(const Storage &theStorage, bool theBoolDesc=false);
-std::vector<Customer> getCustomersSortedByName(const Storage &theStorage, bool theBoolDesc=false);
-std::vector<Booking> getBookingsSortedByDate(const Storage &theStorage, bool theBoolDesc=false);
+DoubleLinkedList<Tour> getToursSortedByPrice(const Storage &theStorage, bool theBoolDesc=false);
+DoubleLinkedList<Tour> getToursSortedByStartDate(const Storage &theStorage, bool theBoolDesc=false);
+DoubleLinkedList<Customer> getCustomersSortedByName(const Storage &theStorage, bool theBoolDesc=false);
+DoubleLinkedList<Booking> getBookingsSortedByDate(const Storage &theStorage, bool theBoolDesc=false);
 
 // Max / Min helpers
 const Tour* getTourWithMaxPrice(const Storage &theStorage);
@@ -75,11 +75,11 @@ double averageRevenuePerBooking(const Storage &theStorage);
 int countTours(const Storage &theStorage);
 int countCustomers(const Storage &theStorage);
 int totalGuestsBooked(const Storage &theStorage);
+int countToursWithSameOriginAsFirst(const Storage &theStorage);
 
 // Statistics (by conditions)
-#include <map>
-std::map<int,double> revenuePerTour(const Storage &theStorage);
-std::map<int,int> bookingsPerCustomer(const Storage &theStorage);
-std::map<int,int> bookingsPerStaff(const Storage &theStorage);
-std::vector<Tour> toursInMonthYear(const Storage &theStorage, int theIntMonth, int theIntYear);
-std::map<std::string,int> bookingsByStatus(const Storage &theStorage);
+DLLMap<int,double> revenuePerTour(const Storage &theStorage);
+DLLMap<int,int> bookingsPerCustomer(const Storage &theStorage);
+DLLMap<int,int> bookingsPerStaff(const Storage &theStorage);
+DoubleLinkedList<Tour> toursInMonthYear(const Storage &theStorage, int theIntMonth, int theIntYear);
+DLLMap<std::string,int> bookingsByStatus(const Storage &theStorage);
